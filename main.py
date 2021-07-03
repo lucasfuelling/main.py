@@ -5,7 +5,7 @@ from datetime import timedelta
 from sqlite3 import Error
 import time
 import csv
-from threading import Thread
+from threading import *
 import requests
 
 thread_running = True
@@ -117,9 +117,11 @@ def attendance_come(conn, mychip):
         cur.execute(sql, par)
         conn.commit()
         print(name + " " + come_time + " " + "上班")
-        if datetime.now() > datetime.now().replace(hour=8, minute=0):
+        today_8am = datetime.now().replace(hour=8, minute=0)
+        today_830am = datetime.now().replace(hour=8, minute=30)
+        if today_8am < datetime.now() < today_830am:
             token = "hSoXRRGQiiKDkmvptJTk5rph7UIv50ZqB2vb4IJ0MgK"
-            msg = name + " 上班 " + come_time
+            msg = name + " " + come_time
             line_notify_message(token, msg)
     else:
         print("已打卡了")
@@ -160,38 +162,39 @@ def export_data(conn):
 
 
 def reader():
-    global thread_running
-    database = r"Timeclock.db"
-    conn = create_connection(database)
-    mychip = input()
-    thread_running = False
-    if user_exists(conn, mychip) or mychip == "0":
-        if mychip != "0":
-            if user_clocked(conn, mychip):
-                attendance_go(conn, mychip)
-                export_data(conn)
+    while True:
+        global thread_running
+        database = r"Timeclock.db"
+        conn = create_connection(database)
+        mychip = input()
+        event.set()
+        if user_exists(conn, mychip) or mychip == "0":
+            if mychip != "0":
+                if user_clocked(conn, mychip):
+                    attendance_go(conn, mychip)
+                    export_data(conn)
+                else:
+                    attendance_come(conn, mychip)
             else:
-                attendance_come(conn, mychip)
+                add_user(conn)
         else:
-            add_user(conn)
-    else:
-        print("沒有找到用戶")
-    time.sleep(1)
+            print("沒有找到用戶")
+        time.sleep(1)
+        event.clear()
 
 
 def show_time():
-    global thread_running
-    while thread_running:
-        now = datetime.now()
-        print(now.strftime("%Y-%m-%d %H:%M"))
-        time.sleep(60)
+    while True:
+        global thread_running
+        while not event.isSet():
+            now = datetime.now()
+            print(now.strftime("%Y-%m-%d %H:%M"))
+            time.sleep(60)
 
 
 if __name__ == '__main__':
-    while True:
-        thread_running = True
-        t1 = Thread(target=show_time)
-        t2 = Thread(target=reader)
-        t1.start()
-        t2.start()
-        t2.join()
+    event = Event()
+    t1 = Thread(target=show_time)
+    t2 = Thread(target=reader)
+    t1.start()
+    t2.start()
