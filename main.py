@@ -187,7 +187,6 @@ def show_time():
         time.sleep(60)
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     while True:
         thread_running = True
