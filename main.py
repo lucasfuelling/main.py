@@ -192,26 +192,9 @@ def background_thread():
             now = datetime.now()
             print(now.strftime("%Y-%m-%d %H:%M"))
             time.sleep(60)
-            if now > now.replace(hour=8, minute=0):
-                forget_clock_out()
-
-
-def forget_clock_out():
-    global token
-    database = r"Timeclock.db"
-    conn = create_connection(database)
-    cur = conn.cursor()
-    yesterday = datetime.now() - timedelta(days=1)
-    sql = "SELECT username FROM attendance WHERE clockout is NULL AND day =?"
-    par = (yesterday.strftime("%Y-%m-%d"),)
-    cur.execute(sql, par)
-    rows = cur.fetchall()
-    for row in rows:
-        line_notify_message(token, row[0] + " 忘記打卡")
 
 
 if __name__ == '__main__':
-    forget_clock_out()
     event = Event()
     t1 = Thread(target=background_thread)
     t2 = Thread(target=reader)
