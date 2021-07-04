@@ -184,13 +184,16 @@ def reader():
         event.clear()
 
 
-def show_time():
+# shows time and notifies LINE messenger when employee has forgotten to clock out.
+def background_thread():
     while True:
         global thread_running
         while not event.isSet():
             now = datetime.now()
             print(now.strftime("%Y-%m-%d %H:%M"))
             time.sleep(60)
+            if now > now.replace(hour=8, minute=0):
+                forget_clock_out()
 
 
 def forget_clock_out():
@@ -210,7 +213,7 @@ def forget_clock_out():
 if __name__ == '__main__':
     forget_clock_out()
     event = Event()
-    t1 = Thread(target=show_time)
+    t1 = Thread(target=background_thread)
     t2 = Thread(target=reader)
     t1.start()
     t2.start()
