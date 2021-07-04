@@ -187,11 +187,11 @@ def reader():
 # shows time and notifies LINE messenger when employee has forgotten to clock out.
 def background_thread():
     while True:
-        global thread_running
         while not event.isSet():
             now = datetime.now()
             print(now.strftime("%Y-%m-%d %H:%M"))
-            time.sleep(60)
+            event.wait(timeout=60)
+
 
 
 if __name__ == '__main__':
