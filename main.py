@@ -9,6 +9,7 @@ from threading import *
 import requests
 
 thread_running = True
+token = "hSoXRRGQiiKDkmvptJTk5rph7UIv50ZqB2vb4IJ0MgK"
 
 
 def line_notify_message(token, msg):
@@ -104,6 +105,7 @@ def add_user(conn):
 
 def attendance_come(conn, mychip):
     if not short_clock_in_time(conn, mychip):
+        global token
         par = (mychip,)
         come_time = datetime.now().strftime("%H:%M")
         todays_date = datetime.now().strftime("%Y-%m-%d")
@@ -120,7 +122,6 @@ def attendance_come(conn, mychip):
         today_8am = datetime.now().replace(hour=8, minute=0)
         today_830am = datetime.now().replace(hour=8, minute=30)
         if today_8am < datetime.now() < today_830am:
-            token = "hSoXRRGQiiKDkmvptJTk5rph7UIv50ZqB2vb4IJ0MgK"
             msg = name + " " + come_time
             line_notify_message(token, msg)
     else:
@@ -192,7 +193,22 @@ def show_time():
             time.sleep(60)
 
 
+def forget_clock_out():
+    global token
+    database = r"Timeclock.db"
+    conn = create_connection(database)
+    cur = conn.cursor()
+    yesterday = datetime.now() - timedelta(days=1)
+    sql = "SELECT username FROM attendance WHERE clockout is NULL AND day =?"
+    par = (yesterday.strftime("%Y-%m-%d"),)
+    cur.execute(sql, par)
+    rows = cur.fetchall()
+    for row in rows:
+        line_notify_message(token, row[0] + " 忘記打卡")
+
+
 if __name__ == '__main__':
+    forget_clock_out()
     event = Event()
     t1 = Thread(target=show_time)
     t2 = Thread(target=reader)
