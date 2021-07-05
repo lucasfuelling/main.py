@@ -7,9 +7,14 @@ import time
 import csv
 from threading import *
 import requests
+from os import system
 
 thread_running = True
 token = "hSoXRRGQiiKDkmvptJTk5rph7UIv50ZqB2vb4IJ0MgK"
+
+
+def clear():
+    system('cls||clear')
 
 
 def line_notify_message(token, msg):
@@ -92,9 +97,9 @@ def short_clock_in_time(conn, mychip):
 
 
 def add_user(conn):
-    mychip = input("新员工 \n请放卡:")
+    mychip = input("新員工 \n請打卡:")
     if user_exists(conn, mychip):
-        yesno = input("User exists\n覆蓋名字?[1=是/0=否]:")
+        yesno = input("用戶存在\n覆蓋名字?[1=是/0=否]:")
         if yesno == "1":
             new_name = input("輸入新名字:")
             update_user(conn, (new_name, mychip))
@@ -121,8 +126,8 @@ def attendance_come(conn, mychip):
         print(name + " " + come_time + " " + "上班")
         today_8am = datetime.now().replace(hour=8, minute=0)
         today_830am = datetime.now().replace(hour=8, minute=30)
-        if today_8am < datetime.now() < today_830am:
-            msg = name + " " + come_time
+        if today_8am < datetime.now():
+            msg = name + " " + come_time + "上班"
             line_notify_message(token, msg)
     else:
         print("已打卡了")
@@ -169,6 +174,7 @@ def reader():
         conn = create_connection(database)
         mychip = input()
         event.set()
+        clear()
         if user_exists(conn, mychip) or mychip == "0":
             if mychip != "0":
                 if user_clocked(conn, mychip):
@@ -189,9 +195,9 @@ def background_thread():
     while True:
         while not event.isSet():
             now = datetime.now()
+            clear()
             print(now.strftime("%Y-%m-%d %H:%M"))
             event.wait(timeout=60)
-
 
 
 if __name__ == '__main__':
