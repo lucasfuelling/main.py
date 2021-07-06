@@ -186,7 +186,7 @@ def reader():
                 add_user(conn)
         else:
             print("沒有找到用戶")
-        time.sleep(1)
+        time.sleep(1.5)
         event.clear()
 
 
