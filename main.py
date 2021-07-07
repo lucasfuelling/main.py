@@ -8,6 +8,8 @@ import csv
 from threading import *
 import requests
 from os import system
+import mariadb
+import sys
 
 thread_running = True
 token = "hSoXRRGQiiKDkmvptJTk5rph7UIv50ZqB2vb4IJ0MgK"
@@ -26,6 +28,21 @@ def line_notify_message(token, msg):
     payload = {'message': msg}
     r = requests.post("https://notify-api.line.me/api/notify", headers=headers, params=payload)
     return r.status_code
+
+
+def connect_to_mariadb():
+    try:
+        conn = mariadb.connect(
+            user="jiou99",
+            password="jiou99",
+            host="localhost",
+            port=3306,
+            database="attendance"
+        )
+    except mariadb.Error as e:
+        print(f"Error connecting to MariaDB Platform: {e}")
+        sys.exit(1)
+    return conn
 
 
 def create_connection(db_file):
@@ -73,7 +90,7 @@ def user_exists(conn, mychip):
 def user_clocked(conn, mychip):
     cur = conn.cursor()
     todays_date = datetime.now().strftime("%Y-%m-%d")
-    sql = "SELECT userid FROM attendance INNER JOIN users USING(userid) WHERE clockout is NULL AND chipno=? AND day =?"
+    sql = "SELECT userid FROM attendance INNER JOIN users USING(userid) WHERE clockout is NULL AND chipno=? AND clockday =?"
     par = (mychip, todays_date)
     cur.execute(sql, par)
     if cur.fetchone():
@@ -87,7 +104,7 @@ def short_clock_in_time(conn, mychip):
     todays_date = datetime.now().strftime("%Y-%m-%d")
     one_minutes_ago = datetime.now() - timedelta(minutes=1)
     sql = "SELECT clockin FROM attendance INNER JOIN users USING(userid) WHERE (clockout >= ? OR clockin >= ?) AND " \
-          "chipno=? AND day =? "
+          "chipno=? AND clockday =? "
     par = (one_minutes_ago.strftime("%H:%M"), one_minutes_ago.strftime("%H:%M"), mychip, todays_date)
     cur.execute(sql, par)
     if cur.fetchone():
@@ -118,7 +135,7 @@ def attendance_come(conn, mychip):
         sql = "SELECT userid, name FROM users WHERE chipno = ?"
         cur.execute(sql, par)
         userid, name = cur.fetchone()
-        sql = "INSERT INTO attendance(userid, username, day, clockin)" \
+        sql = "INSERT INTO attendance(userid, username, clockday, clockin)" \
               "VALUES (?,?,?,?)"
         par = (userid, name, todays_date, come_time)
         cur.execute(sql, par)
@@ -142,7 +159,7 @@ def attendance_go(conn, mychip):
         sql = "SELECT userid, name FROM users WHERE chipno = ?"
         cur.execute(sql, par)
         userid, name = cur.fetchone()
-        sql = "UPDATE attendance SET clockout = ? WHERE userid = ? AND clockout is NULL AND day = ?"
+        sql = "UPDATE attendance SET clockout = ? WHERE userid = ? AND clockout is NULL AND clockday = ?"
         par = (go_time, userid, todays_date)
         cur.execute(sql, par)
         conn.commit()
@@ -158,10 +175,12 @@ def export_data(conn):
     str_month = str(month).zfill(2)
     cur = conn.cursor()
     csv_writer = csv.writer(open("打卡-" + str_year + "-" + str_month + ".csv", "w", encoding='utf-8-sig', newline=''))
-    sql = "SELECT username, day, clockin, clockout FROM attendance WHERE strftime('%m', day) = ? ORDER BY userid ASC, " \
-          "day ASC "
-    par = (str_month,)
-    cur.execute(sql, par)
+    #sql = "SELECT username, day, clockin, clockout FROM attendance WHERE strftime('%m', day) = ? ORDER BY userid ASC, " \
+    #      "day ASC "
+    sql = "SELECT username, clockday, DATE_FORMAT(clockin,'%k:%i') as 'clockin', DATE_FORMAT(clockout,'%k:%i') as " \
+          "'clockout' FROM attendance where month(clockday) = month(curdate()) ORDER BY userid ASC "
+    #par = (str_month,)
+    cur.execute(sql)
     rows = cur.fetchall()
     csv_writer.writerow(["Name", "Date", "Come", "Go"])
     csv_writer.writerows(rows)
@@ -171,12 +190,13 @@ def reader():
     while True:
         global thread_running
         database = r"Timeclock.db"
-        conn = create_connection(database)
+        #conn = create_connection(database)
+        conn = connect_to_mariadb()
         mychip = input()
         event.set()
         clear()
-        if user_exists(conn, mychip) or mychip == "0":
-            if mychip != "0":
+        if user_exists(conn, mychip) or mychip == "99":
+            if mychip != "99":
                 if user_clocked(conn, mychip):
                     attendance_go(conn, mychip)
                     export_data(conn)
