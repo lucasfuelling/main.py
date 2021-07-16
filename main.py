@@ -173,8 +173,6 @@ def export_data(conn):
 def reader():
     while True:
         global thread_running
-        database = r"Timeclock.db"
-        #conn = create_connection(database)
         conn = connect_to_mariadb()
         mychip = input()
         event.set()
