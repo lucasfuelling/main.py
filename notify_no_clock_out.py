@@ -36,25 +36,8 @@ def connect_to_mariadb():
     return conn
 
 
-def create_connection(db_file):
-    """ create a database connection to the SQLite database
-        specified by db_file
-    :param db_file: database file
-    :return: Connection object or None
-    """
-    conn = None
-    try:
-        conn = sqlite3.connect(db_file)
-    except Error as e:
-        print(e)
-
-    return conn
-
-
 def forget_clock_out():
     global token
-    database = r"Timeclock.db"
-    #conn = create_connection(database)
     conn = connect_to_mariadb()
     cur = conn.cursor()
     yesterday = datetime.now() - timedelta(days=1)
