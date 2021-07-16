@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-import sqlite3
 from datetime import datetime
 from datetime import timedelta
-from sqlite3 import Error
 import requests
 import mariadb
 import sys
@@ -45,9 +43,26 @@ def forget_clock_out():
     par = (yesterday.strftime("%Y-%m-%d"),)
     cur.execute(sql, par)
     rows = cur.fetchall()
+    message = '\n'
     for row in rows:
-        line_notify_message(token, row[0] + " 忘記打卡")
+        message = message + row[0] + '\n'
+    message = message + "忘記打卡"
+    line_notify_message(token, message)
 
+
+def no_come():
+    global token
+    conn = connect_to_mariadb()
+    cur = conn.cursor()
+    sql = "select name from users where name not in (select username from attendance where clockday = curdate())"
+    cur.execute(sql)
+    rows = cur.fetchall()
+    message = '\n'
+    for row in rows:
+        message = message + row[0] + '\n'
+    message = message + "沒上班"
+    line_notify_message(token, message)
 
 if __name__ == '__main__':
     forget_clock_out()
+    no_come()
